@@ -2,7 +2,7 @@
 terminal based package installer.
 
 ##### screenshot
-![screenshot_1](./screenshot/scr1.gif)
+![screenshot_1](./screenshot/scr.gif)
 
 ## Install
 This program required [fuzzy-finder](https://github.com/junegunn/fzf) utility to run, so you have to install [fzf](https://github.com/junegunn/fzf) first.
