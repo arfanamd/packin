@@ -55,7 +55,10 @@ EOF
 __fzf_program='/usr/bin/env fzf -m --layout=reverse-list --prompt=search: '
 
 # updating repo..
-${__package_update}
+case $MODE in
+	1) echo 'Updating repository...'; ${__package_update} > /dev/null;;
+	2) echo 'Updating repository...'; sudo ${__package_update} > /dev/null;;
+esac
 
 __selected_packages=$($__package_list 2> /dev/null | sed -n '1!p' | $__fzf_program | tr ' ' '.')
 __selected_packages=($(echo -e "${__selected_packages}"));
