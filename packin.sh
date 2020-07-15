@@ -9,8 +9,10 @@
 # ---------------
 # Author: arfanamd
 # Github: https://github.com/arfanamd
-# Licence: GPL v3
+# Licence: GNU General Public Licence v3
 #####################################################
+
+_VAR_=$1
 
 # due to portability reasons with termux user,
 # since termux doesn't need root privileges when
@@ -19,11 +21,12 @@
 which sudo > /dev/null 2>&1
 [[ $? != 0 ]] && MODE=1 || MODE=2
 
-# the package manager command variable; configure these variables to match with your distro package manager.
+# the package manager command variables; configure these variables to match with your distro package manager.
 __package_manager=${__package_manager:=apt}
 __package_install=${__package_install:=${__package_manager} install}
 __package_update=${__package_update:=${__package_manager} update}
 __package_list=${__package_list:=${__package_manager} list}
+__package_upgradable=${__package_upgradable:=${__package_list} --upgradable}
 
 which fzf > /dev/null 2>&1
 [[ $? != 0 ]] && {
@@ -53,6 +56,7 @@ EOF
 
 # read the fzf manual for more information of these options entered!
 __fzf_program='/usr/bin/env fzf -m --layout=reverse-list --prompt=search: '
+__counter=0
 
 # updating repo..
 case $MODE in
@@ -60,19 +64,26 @@ case $MODE in
 	2) echo 'Updating repository...'; sudo ${__package_update} > /dev/null;;
 esac
 
-__selected_packages=$($__package_list 2> /dev/null | sed -n '1!p' | $__fzf_program | tr ' ' '.')
-__selected_packages=($(echo -e "${__selected_packages}"));
+if [[ $_VAR_ == --upgradable ]]; then
+	__selected_packages=$($__package_upgradable 2> /dev/null | sed -n '1!p' | $__fzf_program | tr ' ' '.')
+	__selecter_packages=($(echo -e "${__selected_packages}"))
+else
+	__selected_packages=$($__package_list 2> /dev/null | sed -n '1!p' | $__fzf_program | tr ' ' '.')
+	__selected_packages=($(echo -e "${__selected_packages}"))
+fi
 
 for ((i = 0; i < ${#__selected_packages[@]}; i++)); do
 	case $MODE in
-		1) ${__package_install} ${__selected_packages[i]%/*};;
-		2) sudo ${__package_install} ${__selected_packages[i]%/*};;
+		1) ${__package_install} ${__selected_packages[i]%/*} -y;
+		   [[ $? == 0 ]] && ((__counter++));;
+		2) sudo ${__package_install} ${__selected_packages[i]%/*} -y;
+		   [[ $? == 0 ]] && ((__counter++));;
 	esac
 done
 
-echo -e "\n-- \e[1;92m${#__selected_packages[@]}\e[0m new package(s) installed --"
+echo -e "\n-- \e[1;92m${__counter}\e[0m new package(s) installed --"
 
-unset __package_manager __package_install __package_update __package_list
-unset __list_available_package __fzf_program __selected_packages
+unset __package_manager __package_install __package_update __package_list __package_upgradable
+unset __fzf_program _VAR_ __selected_packages __counter MODE
 
 #__end_of_file__
