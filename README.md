@@ -14,7 +14,7 @@ git clone https://github.com/arfanamd/packin.git && cd packin && chmod 755 packi
 
 ##### or directly copy the script using curl
 ```
-curl https://raw.githubusercontent.com/arfanamd/packin/master/packin.sh > ~/bin/packin.sh && chmod 755 ~/bin/packin.sh
+curl https://raw.githubusercontent.com/arfanamd/packin/master/packin.sh > ~/packin.sh && chmod 755 ~/packin.sh
 ```
 
 ## Usage
