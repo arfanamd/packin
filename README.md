@@ -18,8 +18,10 @@ curl https://raw.githubusercontent.com/arfanamd/packin/master/packin.sh > ~/bin/
 ```
 
 ## Usage
-##### run the script
-`./packin.sh`
+##### run the script normal mode: 
+    `./packin.sh`
+##### run the script upgradable mode:
+    `./packin.sh --upgradable`
 
 * `TAB-Key` -> is used to mark the package that you want to install.
 * `search` -> type directly to filter search result.
