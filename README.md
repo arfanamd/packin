@@ -1,6 +1,8 @@
 # packin
 terminal based package installer.
 
+add: with the description of the package.
+
 ##### screenshot
 ![screenshot_1](./screenshot/scr.gif)
 
