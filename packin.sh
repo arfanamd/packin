@@ -1,89 +1,66 @@
+# package(s) installer v.2.0
+# --------------------------
+# Installing dozens of packages has never been so easy.
+# Simply by tagging the package name you want and then
+# this program does the rest for you.
+# -----------------------------------
+# Author  : arfanamd
+# License : GPLv3+
+# Project : <https://github.com/arfanamd/packin
+# *****************************************************
 #!/usr/bin/env bash
 
-#####################################################
-# Package(s) installer v.1.0
-# --
-# Installing dozens of packages has never been so easy.
-# Symply by marking the package name you want, then this
-# program will take care the rest of it.
-# ---------------
-# Author: arfanamd
-# Github: https://github.com/arfanamd
-# Licence: GNU General Public Licence v3
-#####################################################
-
-_VAR_=$1
-
-# due to portability reasons with termux user,
-# since termux doesn't need root privileges when
-# installing a package
-#
-which sudo > /dev/null 2>&1
-[[ $? != 0 ]] && MODE=1 || MODE=2
-
-# the package manager command variables; configure these variables to match with your distro package manager.
-__package_manager=${__package_manager:=apt}
-__package_install=${__package_install:=${__package_manager} install}
-__package_update=${__package_update:=${__package_manager} update}
-__package_list=${__package_list:=${__package_manager} list}
-__package_upgradable=${__package_upgradable:=${__package_list} --upgradable}
-
-which fzf > /dev/null 2>&1
+which fzf &> /dev/null
 [[ $? != 0 ]] && {
-	if [[ $MODE == 1 ]]; then
-		echo -e "\n\e[1;31merror:\e[0m fzf is not installed yet.\n"
-		echo -n "Do you want to install it [Y / N]? "
-		read -n1 answer
-
-		if [[ $answer == y* ]] || [[ $answer == Y* ]]; then
-			${__package_update} && ${__package_install} fzf
-		else
-			echo -e "\n\e[1;33mwarning:\e[0m this program need fzf utility to run.\n"
-			exit 0;
-		fi
-	elif [[ $MODE == 2 ]]; then
-		cat << EOF
-
- This program need an fzf utility to run, you can install it
- by cloning this repository https://github.com/junegunn/fzf
- or if your distribution has provided it, you can install
- it by yourself.
-
-EOF
-		exit 0;
-	fi
+	printf "%s\n%s\n%s\n" \
+	"error: fzf not installed" "install it first!" \
+	"<http://github.com/junegunn/fzf>"
+	exit 1
 }
 
-# read the fzf manual for more information of these options entered!
-__fzf_program='/usr/bin/env fzf -m --layout=reverse-list --prompt=search: '
-__counter=0
+#- due to compatibility to termux user, since termux doesn't
+# need root priviledge to install a package.
+which sudo &> /dev/null
+[[ $? == 0 ]] && _mode='sudo' || _mode=''
 
-# updating repo..
-case $MODE in
-	1) echo 'Updating repository...'; ${__package_update} > /dev/null;;
-	2) echo 'Updating repository...'; sudo ${__package_update} > /dev/null;;
-esac
+_var=${1}
 
-if [[ $_VAR_ == --upgradable ]]; then
-	__selected_packages=$($__package_upgradable 2> /dev/null | sed -n '1!p' | $__fzf_program | tr ' ' '.')
-	__selecter_packages=($(echo -e "${__selected_packages}"))
+#- match the values of these variables (5) to your distribution's package manager.
+_pkgManager=${_pkgManager:=apt}
+_pkgDescrib=${_pkgDescrib:=${_pkgManager} show}
+_pkgListall=${_pkgListall:=${_pkgManager} list}
+_pkgUpgrade=${_pkgUpgrade:=${_pkgListall} --upgradable}
+_pkgInstall=${_pkgInstall:=${_pkgManager} install}
+
+_nCounter=0
+_uCounter=0
+
+if [[ ${_var} =~ '--upgr' ]]; then
+	_selectedPkg=$(${_pkgUpgrade} 2> /dev/null|sed -n '1!p'| \
+                fzf -m --layout=reverse-list --preview-window=bottom:50%:wrap \
+                --preview="echo {}|sed -e 's,/[a-zA-Z]*.*,,g'|xargs ${_pkgDescrib} 2> /dev/null"|tr ' ' '.')
 else
-	__selected_packages=$($__package_list 2> /dev/null | sed -n '1!p' | $__fzf_program | tr ' ' '.')
-	__selected_packages=($(echo -e "${__selected_packages}"))
+        _selectedPkg=$(${_pkgListall} 2> /dev/null|sed -n '1!p'| \
+                fzf -m --layout=reverse-list --preview-window=bottom:50%:wrap \
+                --preview="echo {}|sed -e 's,/[a-zA-Z]*.*,,g'|xargs ${_pkgDescrib} 2> /dev/null"|tr ' ' '.')
 fi
 
-for ((i = 0; i < ${#__selected_packages[@]}; i++)); do
-	case $MODE in
-		1) ${__package_install} ${__selected_packages[i]%/*} -y;
-		   [[ $? == 0 ]] && ((__counter++));;
-		2) sudo ${__package_install} ${__selected_packages[i]%/*} -y;
-		   [[ $? == 0 ]] && ((__counter++));;
-	esac
+printf "\e[?1049h\e[2J\e[1H"
+#- instalation process
+for ((pkgs = 0; pkgs < ${#_selectedPkg[@]}; pkgs++)); do
+        ${_mode} ${_pkgInstall} ${_selectedPkg[pkgs]%/*} -y
+        if [[ $? == 0 ]]; then
+                echo "${_selectedPkg[pkgs]}"|grep "installed" &> /dev/null
+                if [[ $? == 0 ]]; then
+                        ((_uCounter++))
+                else
+                        ((_nCounter++))
+                fi
+        fi
 done
 
-echo -e "\n-- \e[1;92m${__counter}\e[0m new package(s) installed --"
+printf "\e[2J\e[1H\e[?1049l-- %d %s %d %s --\n" "${_nCounter}" \
+        "new package(s) installed &" "${_uCounter}" "package(s) upgraded"
 
-unset __package_manager __package_install __package_update __package_list __package_upgradable
-unset __fzf_program _VAR_ __selected_packages __counter MODE
-
-#__end_of_file__
+unset _pkgManager _pkgDescrib _pkgListall _pkgUpgrade _pkgInstall
+unset _var _mode _nCounter _uCounter _selectedPkg
