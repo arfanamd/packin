@@ -11,12 +11,12 @@
 #!/usr/bin/env bash
 
 which fzf &> /dev/null
-[[ $? != 0 ]] && {
-	printf "%s\n%s\n%s\n" \
+if [[ $? != 0 ]]; then
+	printf "%s\n%s n%s\n" \
 	"error: fzf not installed" "install it first!" \
 	"<http://github.com/junegunn/fzf>"
 	exit 1
-}
+fi
 
 #- due to compatibility to termux user, since termux doesn't
 # need root priviledge to install a package.
@@ -45,13 +45,16 @@ else
                 --preview="echo {}|sed -e 's,/[a-zA-Z]*.*,,g'|xargs ${_pkgDescrib} 2> /dev/null"|tr ' ' '.')
 fi
 
+_selectedPkg=(${_selectedPkg})
+
+unset _var _pkgManager _pkgDescrib _pkgListall _pkgUpgrade
+
 printf "\e[?1049h\e[2J\e[1H"
 #- instalation process
 for ((pkgs = 0; pkgs < ${#_selectedPkg[@]}; pkgs++)); do
         ${_mode} ${_pkgInstall} ${_selectedPkg[pkgs]%/*} -y
         if [[ $? == 0 ]]; then
-                echo "${_selectedPkg[pkgs]}"|grep "installed" &> /dev/null
-                if [[ $? == 0 ]]; then
+		if [[ ${_selectedPkg[pkgs]} =~ 'installed' || ${_selectedPkg[pkgs]} =~ 'upgradable' ]]; then
                         ((_uCounter++))
                 else
                         ((_nCounter++))
@@ -62,5 +65,4 @@ done
 printf "\e[2J\e[1H\e[?1049l-- %d %s %d %s --\n" "${_nCounter}" \
         "new package(s) installed &" "${_uCounter}" "package(s) upgraded"
 
-unset _pkgManager _pkgDescrib _pkgListall _pkgUpgrade _pkgInstall
-unset _var _mode _nCounter _uCounter _selectedPkg
+unset _pkgInstall _selectedPkg _mode _uCounter _nCounter
